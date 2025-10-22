@@ -756,10 +756,10 @@ async function generatePDFReport() {
     const gHeight = yTotalDivVal * PIXELS_PER_DIV + 100;
 
     const imgData = await Plotly.toImage(graphDiv, {
-      format: 'png',
+      format: 'jpeg',
       width: gWidth,
       height: gHeight,
-      scale: 2
+      scale: 5
     });
 
     // Maximize graph on page - use full A4 width and height
@@ -767,7 +767,7 @@ async function generatePDFReport() {
     const pdfHeight = (gHeight * pdfWidth) / gWidth;
 
     // Place from top with minimal margin, maximize space
-    pdf.addImage(imgData, 'PNG', 10, 10, pdfWidth, Math.min(pdfHeight, 277));
+    pdf.addImage(imgData, 'jpeg', 10, 10, pdfWidth, Math.min(pdfHeight, 277));
 
     
     pdf.save(`${expName.replace(/\s+/g, '_')}_report.pdf`);
