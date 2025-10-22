@@ -579,9 +579,13 @@ async function generatePDFReport() {
     
     pdf.setFont('times', 'bold');
     pdf.setFontSize(14);
-    pdf.text(expName, 105, 20, { align: 'center' });
+    pdf.setFont('times', 'bold');
+    pdf.setFontSize(14);
+    // Split long titles to fit page width
+    const splitTitle = pdf.splitTextToSize(expName, 170);
+    pdf.text(splitTitle, 105, 20, { align: 'center' });
     
-    let yPos = 30;
+    let yPos = 40;
     pdf.setFontSize(10);
     pdf.setFont('times', 'normal');
     

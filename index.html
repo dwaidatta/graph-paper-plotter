@@ -9,6 +9,7 @@
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="styles.css">
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
 </head>
 <body>
   <div class="loading" id="loadingMsg">
@@ -266,17 +267,6 @@
           <label>Date of Performing</label>
           <input type="date" id="expDate">
         </div>
-      </div>
-      
-      <div class="grid-2" style="margin-top:10px;">
-        <div class="input-group">
-          <label>Date of Report Generation</label>
-          <input type="date" id="genDate" readonly>
-        </div>
-      </div>
-      
-      <div id="deviceInfo" class="calc-info" style="display:block; margin-top:10px; font-size:10px;">
-        <strong>Device Information:</strong> <span id="deviceInfoText"></span>
       </div>
       
       <button class="btn btn-red" onclick="generatePDFReport()" style="margin-top:10px;"><i class="fas fa-file-pdf"></i> Generate PDF Report</button>
