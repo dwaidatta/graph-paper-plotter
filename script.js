@@ -75,14 +75,48 @@ function updateMinValues() {
   const xTotalDiv = xBigDiv * xSmallPerBig;
   const yRange = yMax - yMin;
   const xRange = xMax - xMin;
-  const yPerDiv = yRange / yTotalDiv;
-  const xPerDiv = xRange / xTotalDiv;
+  const yPerDivCalc = yRange / yTotalDiv;
+  const xPerDivCalc = xRange / xTotalDiv;
   
+  // Display calculated values as before
   document.getElementById('minValuesText').innerHTML = `
-    <strong>X-axis:</strong> ${xTotalDiv} total divisions (${xBigDiv} × ${xSmallPerBig}) | Value per division: <u>${xPerDiv.toFixed(4)}</u><br>
-    <strong>Y-axis:</strong> ${yTotalDiv} total divisions (${yBigDiv} × ${ySmallPerBig}) | Value per division: <u>${yPerDiv.toFixed(4)}</u>
+    <strong>X-axis:</strong> ${xTotalDiv} total divisions (${xBigDiv} × ${xSmallPerBig}) | Value per division: <u>${xPerDivCalc.toFixed(4)}</u><br>
+    <strong>Y-axis:</strong> ${yTotalDiv} total divisions (${yBigDiv} × ${ySmallPerBig}) | Value per division: <u>${yPerDivCalc.toFixed(4)}</u>
   `;
+  
+  // Update placeholders for override inputs
+  document.getElementById('xPerDivInput').placeholder = `Default: ${xPerDivCalc.toFixed(4)}`;
+  document.getElementById('yPerDivInput').placeholder = `Default: ${yPerDivCalc.toFixed(4)}`;
 }
+
+// Helper function to get the actual per-div values (user input or calculated)
+function getPerDivValues() {
+  const yBigDiv = parseInt(document.getElementById('yBigDiv').value) || 1;
+  const ySmallPerBig = parseInt(document.getElementById('ySmallPerBig').value) || 1;
+  const xBigDiv = parseInt(document.getElementById('xBigDiv').value) || 1;
+  const xSmallPerBig = parseInt(document.getElementById('xSmallPerBig').value) || 1;
+  const yMin = parseFloat(document.getElementById('yMin').value) || 0;
+  const yMax = parseFloat(document.getElementById('yMax').value) || 1;
+  const xMin = parseFloat(document.getElementById('xMin').value) || 0;
+  const xMax = parseFloat(document.getElementById('xMax').value) || 1;
+  
+  const yTotalDiv = yBigDiv * ySmallPerBig;
+  const xTotalDiv = xBigDiv * xSmallPerBig;
+  const yRange = yMax - yMin;
+  const xRange = xMax - xMin;
+  const yPerDivCalc = yRange / yTotalDiv;
+  const xPerDivCalc = xRange / xTotalDiv;
+  
+  // Use custom value if provided and greater than or equal to calculated, otherwise use calculated
+  const xPerDivCustom = parseFloat(document.getElementById('xPerDivInput').value);
+  const yPerDivCustom = parseFloat(document.getElementById('yPerDivInput').value);
+  
+  const xPerDiv = (xPerDivCustom && xPerDivCustom >= xPerDivCalc) ? xPerDivCustom : xPerDivCalc;
+  const yPerDiv = (yPerDivCustom && yPerDivCustom >= yPerDivCalc) ? yPerDivCustom : yPerDivCalc;
+  
+  return { xPerDiv, yPerDiv, xTotalDiv, yTotalDiv, xMin, yMin, xMax, yMax };
+}
+
 
 function clearSolution(input) {
   const row = input.parentNode.parentNode;
@@ -119,21 +153,7 @@ function removeRow(btn) {
 }
 
 function calculateSolution() {
-  const yBigDiv = parseInt(document.getElementById('yBigDiv').value);
-  const ySmallPerBig = parseInt(document.getElementById('ySmallPerBig').value);
-  const yMin = parseFloat(document.getElementById('yMin').value);
-  const yMax = parseFloat(document.getElementById('yMax').value);
-  const xBigDiv = parseInt(document.getElementById('xBigDiv').value);
-  const xSmallPerBig = parseInt(document.getElementById('xSmallPerBig').value);
-  const xMin = parseFloat(document.getElementById('xMin').value);
-  const xMax = parseFloat(document.getElementById('xMax').value);
-  
-  const yTotalDiv = yBigDiv * ySmallPerBig;
-  const xTotalDiv = xBigDiv * xSmallPerBig;
-  const yRange = yMax - yMin;
-  const xRange = xMax - xMin;
-  const yPerDiv = yRange / yTotalDiv;
-  const xPerDiv = xRange / xTotalDiv;
+  const { xPerDiv, yPerDiv, xTotalDiv, yTotalDiv, xMin, yMin, xMax, yMax } = getPerDivValues();
   
   const tableRows = document.getElementById('dataTable').getElementsByTagName('tbody')[0].rows;
   
@@ -346,7 +366,7 @@ function downloadGraphPNG() {
   const gHeight = yTotalDiv * PIXELS_PER_DIV + 100;
   
   Plotly.downloadImage(graphDiv, {
-    format: 'png',
+    format: 'jpeg',
     width: gWidth,      // Use calculated width
     height: gHeight,    // Use calculated height
     scale: 10,           // Kx resolution multiplier
@@ -356,25 +376,18 @@ function downloadGraphPNG() {
 
 
 function generateGraph() {
+  const { xPerDiv, yPerDiv, xTotalDiv, yTotalDiv, xMin, yMin, xMax, yMax } = getPerDivValues();
+  
   const yBigDiv = parseInt(document.getElementById('yBigDiv').value);
   const ySmallPerBig = parseInt(document.getElementById('ySmallPerBig').value);
-  const yMin = parseFloat(document.getElementById('yMin').value);
-  const yMax = parseFloat(document.getElementById('yMax').value);
   const xBigDiv = parseInt(document.getElementById('xBigDiv').value);
   const xSmallPerBig = parseInt(document.getElementById('xSmallPerBig').value);
-  const xMin = parseFloat(document.getElementById('xMin').value);
-  const xMax = parseFloat(document.getElementById('xMax').value);
+  
   const tickInterval = parseInt(document.getElementById('tickInterval').value);
   const xLabel = document.getElementById('xLabel').value;
   const yLabel = document.getElementById('yLabel').value;
   const graphTitle = document.getElementById('graphTitle').value;
   
-  const yTotalDiv = yBigDiv * ySmallPerBig;
-  const xTotalDiv = xBigDiv * xSmallPerBig;
-  const yRange = yMax - yMin;
-  const xRange = xMax - xMin;
-  const yPerDiv = yRange / yTotalDiv;
-  const xPerDiv = xRange / xTotalDiv;
   const graphWidth = xTotalDiv * PIXELS_PER_DIV;
   const graphHeight = yTotalDiv * PIXELS_PER_DIV;
   
@@ -628,12 +641,7 @@ async function generatePDFReport() {
     const xMin = document.getElementById('xMin').value;
     const xMax = document.getElementById('xMax').value;
     
-    const yTotalDiv = parseInt(yBigDiv) * parseInt(ySmallPerBig);
-    const xTotalDiv = parseInt(xBigDiv) * parseInt(xSmallPerBig);
-    const yRange = parseFloat(yMax) - parseFloat(yMin);
-    const xRange = parseFloat(xMax) - parseFloat(xMin);
-    const yPerDiv = yRange / yTotalDiv;
-    const xPerDiv = xRange / xTotalDiv;
+    const { xPerDiv, yPerDiv, xTotalDiv, yTotalDiv } = getPerDivValues();
     
     pdf.text('Smallest division along X: ', 20, yPos);
     pdf.setFont('times', 'bold');

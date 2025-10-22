@@ -19,6 +19,9 @@
   <div class="container">
     <div class="header">
       <h1><i class="fas fa-chart-line"></i> Graph Paper Plotter</h1>
+      <p style="font-style: italic; font-size: 12px; margin-top: 5px;">
+      Made by <a href="https://dwaidatta.in" target="_blank" style="color: #fff; text-decoration: underline;">Dwaipayan Datta</a>
+    </p>
     </div>
     
     <div class="section">
@@ -69,8 +72,27 @@
       
       <div id="minValuesBox" class="min-values">
         <strong><i class="fas fa-info-circle"></i> Calculated Parameters:</strong>
-        <div id="minValuesText"></div>
+        <div id="minValuesText" style="margin-top: 5px;"></div>
+        
+        <div style="margin-top: 10px;">
+          <strong>Override Smallest Division Values (optional):</strong>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 8px;">
+            <div class="input-group">
+              <label>X (units per division)</label>
+              <input type="number" step="any" id="xPerDivInput" placeholder="Leave blank for default" style="font-size: 11px;">
+            </div>
+            <div class="input-group">
+              <label>Y (units per division)</label>
+              <input type="number" step="any" id="yPerDivInput" placeholder="Leave blank for default" style="font-size: 11px;">
+            </div>
+          </div>
+          <div style="font-size: 11px; margin-top: 5px; font-style: italic; color: #666;">
+            Enter values greater than or equal to calculated values to use custom divisions.
+          </div>
+        </div>
       </div>
+
+
       
       <div class="info-box">
         <strong>Formula:</strong> Total divisions = Big divisions × Small per big | Value per division = (Max - Min) / Total divisions | Division for point = round((Value - Min) / Value per division)
@@ -227,7 +249,7 @@
       <div class="info-box" id="downloadInfo" style="display:none;">
         <strong><i class="fas fa-download"></i> Download Graph:</strong>
         <button class="btn" onclick="downloadGraphPNG()" style="margin-left:10px;">
-          <i class="fas fa-image"></i> Download High Quality PNG
+          <i class="fas fa-image"></i> Download High Quality JPEG
         </button>
       </div>
 
