@@ -334,13 +334,26 @@ function toggleReferenceLines() {
 
 function downloadGraphPNG() {
   const graphDiv = document.getElementById('graphDiv');
+  
+  // Get exact graph dimensions from parameters
+  const yBigDiv = parseInt(document.getElementById('yBigDiv').value);
+  const ySmallPerBig = parseInt(document.getElementById('ySmallPerBig').value);
+  const xBigDiv = parseInt(document.getElementById('xBigDiv').value);
+  const xSmallPerBig = parseInt(document.getElementById('xSmallPerBig').value);
+  const yTotalDiv = yBigDiv * ySmallPerBig;
+  const xTotalDiv = xBigDiv * xSmallPerBig;
+  const gWidth = xTotalDiv * PIXELS_PER_DIV + 120;
+  const gHeight = yTotalDiv * PIXELS_PER_DIV + 100;
+  
   Plotly.downloadImage(graphDiv, {
     format: 'png',
-    width: null,
-    height: null,
+    width: gWidth,      // Use calculated width
+    height: gHeight,    // Use calculated height
+    scale: 10,           // Kx resolution multiplier
     filename: 'graph_plot'
   });
 }
+
 
 function generateGraph() {
   const yBigDiv = parseInt(document.getElementById('yBigDiv').value);
@@ -392,7 +405,7 @@ function generateGraph() {
   }
   
   const annotations = [{
-    text: `<b>X: ${xPerDiv.toFixed(4)}<br>Y: ${yPerDiv.toFixed(4)}</b>`,
+    text: `Smallest Divisions<br><b>X: ${xPerDiv.toFixed(4)}<br>Y: ${yPerDiv.toFixed(4)}</b>`,
     xref: 'paper',
     yref: 'paper',
     x: 0.02,
