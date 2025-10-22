@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Graph Paper Plotter</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="loading" id="loadingMsg">
+    <i class="fas fa-spinner fa-spin"></i> Generating PDF...
+  </div>
+  
+  <div class="container">
+    <div class="header">
+      <h1><i class="fas fa-chart-line"></i> Graph Paper Plotter</h1>
+    </div>
+    
+    <div class="section">
+      <div class="section-title"><i class="fas fa-sliders-h"></i> Graph Paper Parameters</div>
+      
+      <div class="demo-buttons">
+        <button class="btn" onclick="loadDemo1()"><i class="fas fa-flask"></i> Demo 1</button>
+        <button class="btn" onclick="loadDemo2()"><i class="fas fa-vial"></i> Demo 2</button>
+      </div>
+      
+      <div class="grid-4">
+        <div class="input-group">
+          <label>Y Big Divisions</label>
+          <input type="number" id="yBigDiv" value="" min="1">
+        </div>
+        <div class="input-group">
+          <label>Y Small per Big</label>
+          <input type="number" id="ySmallPerBig" value="" min="1">
+        </div>
+        <div class="input-group">
+          <label>Y Min Value</label>
+          <input type="number" step="any" id="yMin" value="">
+        </div>
+        <div class="input-group">
+          <label>Y Max Value</label>
+          <input type="number" step="any" id="yMax" value="">
+        </div>
+      </div>
+      
+      <div class="grid-4" style="margin-top:10px;">
+        <div class="input-group">
+          <label>X Big Divisions</label>
+          <input type="number" id="xBigDiv" value="" min="1">
+        </div>
+        <div class="input-group">
+          <label>X Small per Big</label>
+          <input type="number" id="xSmallPerBig" value="" min="1">
+        </div>
+        <div class="input-group">
+          <label>X Min Value</label>
+          <input type="number" step="any" id="xMin" value="">
+        </div>
+        <div class="input-group">
+          <label>X Max Value</label>
+          <input type="number" step="any" id="xMax" value="">
+        </div>
+      </div>
+      
+      <div id="minValuesBox" class="min-values">
+        <strong><i class="fas fa-info-circle"></i> Calculated Parameters:</strong>
+        <div id="minValuesText"></div>
+      </div>
+      
+      <div class="info-box">
+        <strong>Formula:</strong> Total divisions = Big divisions × Small per big | Value per division = (Max - Min) / Total divisions | Division for point = round((Value - Min) / Value per division)
+      </div>
+    </div>
+    
+    <div class="section">
+      <div class="section-title"><i class="fas fa-table"></i> Data Points & Solution</div>
+      
+      <table id="dataTable">
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="selectAll" onchange="toggleAllRegression()"></th>
+            <th>X Value</th>
+            <th>Y Value</th>
+            <th>X Division</th>
+            <th>Y Division</th>
+            <th><i class="fas fa-cog"></i></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><input type="checkbox" class="reg-check"></td><td><input type="number" step="any" oninput="clearSolution(this)"></td><td><input type="number" step="any" oninput="clearSolution(this)"></td><td class="solution-cell"></td><td class="solution-cell"></td><td><button class="btn btn-red" onclick="removeRow(this)"><i class="fas fa-trash"></i></button></td></tr>
+          <tr><td><input type="checkbox" class="reg-check"></td><td><input type="number" step="any" oninput="clearSolution(this)"></td><td><input type="number" step="any" oninput="clearSolution(this)"></td><td class="solution-cell"></td><td class="solution-cell"></td><td><button class="btn btn-red" onclick="removeRow(this)"><i class="fas fa-trash"></i></button></td></tr>
+          <tr><td><input type="checkbox" class="reg-check"></td><td><input type="number" step="any" oninput="clearSolution(this)"></td><td><input type="number" step="any" oninput="clearSolution(this)"></td><td class="solution-cell"></td><td class="solution-cell"></td><td><button class="btn btn-red" onclick="removeRow(this)"><i class="fas fa-trash"></i></button></td></tr>
+          <tr><td><input type="checkbox" class="reg-check"></td><td><input type="number" step="any" oninput="clearSolution(this)"></td><td><input type="number" step="any" oninput="clearSolution(this)"></td><td class="solution-cell"></td><td class="solution-cell"></td><td><button class="btn btn-red" onclick="removeRow(this)"><i class="fas fa-trash"></i></button></td></tr>
+          <tr><td><input type="checkbox" class="reg-check"></td><td><input type="number" step="any" oninput="clearSolution(this)"></td><td><input type="number" step="any" oninput="clearSolution(this)"></td><td class="solution-cell"></td><td class="solution-cell"></td><td><button class="btn btn-red" onclick="removeRow(this)"><i class="fas fa-trash"></i></button></td></tr>
+        </tbody>
+      </table>
+      
+      <button class="btn" onclick="addRow()"><i class="fas fa-plus"></i> Add Row</button>
+      <button class="btn" onclick="calculateSolution()"><i class="fas fa-calculator"></i> Calculate</button>
+      
+      <div id="calcInfo" class="calc-info">
+        <div id="calcText"></div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <div class="section-title"><i class="fas fa-chart-line"></i> Regression Lines</div>
+      
+      <div class="info-box">
+        Select points using checkboxes in the table, then add regression line. Multiple regression lines can be added with different point selections.
+      </div>
+      
+      <button class="btn" onclick="addRegressionLine()" id="addRegBtn" style="display:none;"><i class="fas fa-plus"></i> Add Regression Line</button>
+      <button class="btn btn-red" onclick="clearAllRegressions()" id="clearRegBtn" style="display:none;"><i class="fas fa-times"></i> Clear All</button>
+      
+      <div id="regressionList" style="margin-top:10px;"></div>
+    </div>
+    
+    <div class="section">
+      <div class="section-title"><i class="fas fa-ruler"></i> Reference Lines</div>
+      
+      <div class="grid-4">
+        <div class="input-group">
+          <label>Line Type</label>
+          <select id="refLineType">
+            <option value="vertical">Vertical (X)</option>
+            <option value="horizontal">Horizontal (Y)</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Position (Division)</label>
+          <input type="number" id="refLinePos" value="0" min="0">
+        </div>
+        <div class="input-group">
+          <label>Line Width</label>
+          <input type="number" id="refLineWidth" value="2" min="1" max="5" step="0.5">
+        </div>
+        <div class="input-group">
+          <label>Line Color</label>
+          <select id="refLineColor">
+            <option value="#c41e3a">Red</option>
+            <option value="#003366">Blue</option>
+            <option value="#000">Black</option>
+            <option value="#666">Gray</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="grid-2" style="margin-top:10px;">
+        <div class="input-group">
+          <label>Line Style</label>
+          <select id="refLineStyle">
+            <option value="dot">Dotted</option>
+            <option value="dash">Dashed</option>
+            <option value="solid">Solid</option>
+            <option value="longdash">Long Dash</option>
+          </select>
+        </div>
+      </div>
+      
+      <button class="btn" onclick="addReferenceLine()" id="addRefBtn" style="display:none; margin-top:10px;"><i class="fas fa-plus"></i> Add Reference Line</button>
+      <button class="btn btn-red" onclick="clearAllRefLines()" id="clearRefBtn" style="display:none; margin-top:10px;"><i class="fas fa-times"></i> Clear All</button>
+      
+      <div id="refLineList" style="margin-top:10px;"></div>
+      
+      <div class="info-box" style="margin-top:10px;">
+        Reference lines are draggable after creation. Click and drag them to adjust position.
+      </div>
+    </div>
+    
+    <div class="section">
+      <div class="section-title"><i class="fas fa-cogs"></i> Graph Display Settings</div>
+      
+      <div class="grid-3">
+        <div class="input-group">
+          <label>Tick Interval (divs)</label>
+          <input type="number" id="tickInterval" value="10" min="1">
+        </div>
+        <div class="input-group">
+          <label>X-axis Label</label>
+          <input type="text" id="xLabel" value="">
+        </div>
+        <div class="input-group">
+          <label>Y-axis Label</label>
+          <input type="text" id="yLabel" value="">
+        </div>
+      </div>
+      
+      <div class="grid-2" style="margin-top:10px;">
+        <div class="input-group">
+          <label>Graph Title</label>
+          <input type="text" id="graphTitle" value="">
+        </div>
+      </div>
+      
+      <button class="btn" onclick="generateGraph()" id="graphBtn" style="display:none;"><i class="fas fa-chart-area"></i> Generate Graph</button>
+    </div>
+    
+    <div class="section" id="toggleSection" style="display:none;">
+      <div class="section-title"><i class="fas fa-eye"></i> Display Options</div>
+      
+      <div style="margin-top:10px;">
+        <label style="display:inline-block; margin-right:20px;">
+          <input type="checkbox" id="showDataPoints" checked onchange="toggleDataPoints()">
+          Show Data Points & Lines
+        </label>
+        <label style="display:inline-block; margin-right:20px;">
+          <input type="checkbox" id="showRegressionLines" checked onchange="toggleRegressionLines()">
+          Show Regression Lines
+        </label>
+        <label style="display:inline-block;">
+          <input type="checkbox" id="showReferenceLines" checked onchange="toggleReferenceLines()">
+          Show Reference Lines
+        </label>
+      </div>
+    </div>
+    
+    <div class="graph-section">
+      <div class="info-box" id="autoscaleInfo" style="display:none;">
+        <strong><i class="fas fa-expand-arrows-alt"></i> Click the "Autoscale" button in the graph toolbar (top right) to properly fit the graph.</strong>
+      </div>
+      <div class="info-box" id="downloadInfo" style="display:none;">
+        <strong><i class="fas fa-download"></i> Download Graph:</strong>
+        <button class="btn" onclick="downloadGraphPNG()" style="margin-left:10px;">
+          <i class="fas fa-image"></i> Download as PNG
+        </button>
+      </div>
+
+      <div id="graphDiv"></div>
+    </div>
+    
+    <div class="section" id="reportSection" style="display:none;">
+      <div class="section-title"><i class="fas fa-file-pdf"></i> Generate Report</div>
+      
+      <div class="grid-3">
+        <div class="input-group">
+          <label>Experiment Name</label>
+          <input type="text" id="expName" placeholder="Enter experiment name">
+        </div>
+        <div class="input-group">
+          <label>Student Name</label>
+          <input type="text" id="studentName" placeholder="Enter name">
+        </div>
+        <div class="input-group">
+          <label>Roll Number</label>
+          <input type="text" id="rollNo" placeholder="Enter roll number">
+        </div>
+      </div>
+      
+      <div class="grid-3" style="margin-top:10px;">
+        <div class="input-group">
+          <label>Department</label>
+          <input type="text" id="dept" placeholder="Enter department">
+        </div>
+        <div class="input-group">
+          <label>Subject Code</label>
+          <select id="subject">
+            <option value="BS-CH-201">BS-CH-201</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Date of Performing</label>
+          <input type="date" id="expDate">
+        </div>
+      </div>
+      
+      <div class="grid-2" style="margin-top:10px;">
+        <div class="input-group">
+          <label>Date of Report Generation</label>
+          <input type="date" id="genDate" readonly>
+        </div>
+      </div>
+      
+      <div id="deviceInfo" class="calc-info" style="display:block; margin-top:10px; font-size:10px;">
+        <strong>Device Information:</strong> <span id="deviceInfoText"></span>
+      </div>
+      
+      <button class="btn btn-red" onclick="generatePDFReport()" style="margin-top:10px;"><i class="fas fa-file-pdf"></i> Generate PDF Report</button>
+    </div>
+  </div>
+  
+  <script src="script.js"></script>
+</body>
+</html>
