@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Graph Paper Plotter</title>
+  <title>Experimental Graphs</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -18,7 +18,7 @@
   
   <div class="container">
     <div class="header">
-      <h1><i class="fas fa-chart-line"></i> Graph Paper Plotter</h1>
+      <h1><i class="fas fa-chart-line"></i> Experimental Graphs</h1>
       <p style="font-style: italic; font-size: 12px; margin-top: 5px;">
       Made by <a href="https://dwaidatta.in" target="_blank" style="color: #fff; text-decoration: underline;">Dwaipayan Datta</a>
     </p>
@@ -33,25 +33,6 @@
       </div>
       
       <div class="grid-4">
-        <div class="input-group">
-          <label>Y Big Divisions</label>
-          <input type="number" id="yBigDiv" value="" min="1">
-        </div>
-        <div class="input-group">
-          <label>Y Small per Big</label>
-          <input type="number" id="ySmallPerBig" value="" min="1">
-        </div>
-        <div class="input-group">
-          <label>Y Min Value</label>
-          <input type="number" step="any" id="yMin" value="">
-        </div>
-        <div class="input-group">
-          <label>Y Max Value</label>
-          <input type="number" step="any" id="yMax" value="">
-        </div>
-      </div>
-      
-      <div class="grid-4" style="margin-top:10px;">
         <div class="input-group">
           <label>X Big Divisions</label>
           <input type="number" id="xBigDiv" value="" min="1">
@@ -70,6 +51,25 @@
         </div>
       </div>
       
+      <div class="grid-4" style="margin-top:10px;">
+        <div class="input-group">
+          <label>Y Big Divisions</label>
+          <input type="number" id="yBigDiv" value="" min="1">
+        </div>
+        <div class="input-group">
+          <label>Y Small per Big</label>
+          <input type="number" id="ySmallPerBig" value="" min="1">
+        </div>
+        <div class="input-group">
+          <label>Y Min Value</label>
+          <input type="number" step="any" id="yMin" value="">
+        </div>
+        <div class="input-group">
+          <label>Y Max Value</label>
+          <input type="number" step="any" id="yMax" value="">
+        </div>
+      </div>
+      
       <div id="minValuesBox" class="min-values">
         <strong><i class="fas fa-info-circle"></i> Calculated Parameters:</strong>
         <div id="minValuesText" style="margin-top: 5px;"></div>
@@ -78,11 +78,11 @@
           <strong>Override Smallest Division Values (optional):</strong>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 8px;">
             <div class="input-group">
-              <label>X (units per division)</label>
+              <label>X (Smallest division = ___ units)</label>
               <input type="number" step="any" id="xPerDivInput" placeholder="Leave blank for default" style="font-size: 11px;">
             </div>
             <div class="input-group">
-              <label>Y (units per division)</label>
+              <label>Y (Smallest division = ___ units)</label>
               <input type="number" step="any" id="yPerDivInput" placeholder="Leave blank for default" style="font-size: 11px;">
             </div>
           </div>
@@ -91,13 +91,37 @@
           </div>
         </div>
       </div>
-
-
       
       <div class="info-box">
-        <strong>Formula:</strong> Total divisions = Big divisions × Small per big | Value per division = (Max - Min) / Total divisions | Division for point = round((Value - Min) / Value per division)
-      </div>
+        <strong>Formulas:</strong>
+        <div style="margin-top: 10px; font-family: 'Cambria Math', Cambria, serif;">
+          
+          <div style="background: #fff; padding: 8px; margin: 5px 0; border-left: 3px solid #003366;">
+            <strong>1. Total Divisions</strong><br>
+            <span style="font-size: 14px; font-style: italic;">D<sub>total</sub> = Divisions<sub>big</sub> × Divisions<sub>small per big</sub></span>
+          </div>
+          
+          <div style="background: #fff; padding: 8px; margin: 5px 0; border-left: 3px solid #003366;">
+            <strong>2. Smallest Division (units)</strong><br>
+            <span style="font-size: 14px; font-style: italic;">S.D. = (Value<sub>max</sub> - Value<sub>min</sub>) / D<sub>total</sub></span>
+          </div>
+          
+          <div style="background: #fff; padding: 8px; margin: 5px 0; border-left: 3px solid #003366;">
+            <strong>3. Value at Any Division Number</strong><br>
+            <span style="font-size: 14px; font-style: italic;">V = Value<sub>min</sub> + (n × S.D.)</span><br>
+            <span style="font-size: 11px; color: #666;">where n = division number</span>
+          </div>
+          
+          <div style="background: #fff; padding: 8px; margin: 5px 0; border-left: 3px solid #003366;">
+            <strong>4. Division Number for Given Value</strong><br>
+            <span style="font-size: 14px; font-style: italic;">n = round[(Value<sub>point</sub> - Value<sub>min</sub>) / S.D.]</span>
+          </div>
+          
+        </div>
     </div>
+
+    </div>
+
     
     <div class="section">
       <div class="section-title"><i class="fas fa-table"></i> Data Points & Solution</div>

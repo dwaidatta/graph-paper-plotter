@@ -5,6 +5,10 @@ let showDataPoints = true;
 let showRegressionLines = true;
 let showReferenceLines = true;
 
+function roundHalfUp(num) {
+  return Math.floor(num + 0.5);
+}
+
 function loadDemo1() {
   document.getElementById('yBigDiv').value = 20;
   document.getElementById('ySmallPerBig').value = 10;
@@ -80,8 +84,8 @@ function updateMinValues() {
   
   // Display calculated values as before
   document.getElementById('minValuesText').innerHTML = `
-    <strong>X-axis:</strong> ${xTotalDiv} total divisions (${xBigDiv} × ${xSmallPerBig}) | Value per division: <u>${xPerDivCalc.toFixed(4)}</u><br>
-    <strong>Y-axis:</strong> ${yTotalDiv} total divisions (${yBigDiv} × ${ySmallPerBig}) | Value per division: <u>${yPerDivCalc.toFixed(4)}</u>
+    <strong>X-axis:</strong> ${xTotalDiv} total divisions (${xBigDiv} × ${xSmallPerBig}) | Smallest division = <u>${xPerDivCalc.toFixed(4)}</u> units<br>
+    <strong>Y-axis:</strong> ${yTotalDiv} total divisions (${yBigDiv} × ${ySmallPerBig}) | Smallest division = <u>${yPerDivCalc.toFixed(4)}</u> units
   `;
   
   // Update placeholders for override inputs
@@ -95,10 +99,27 @@ function getPerDivValues() {
   const ySmallPerBig = parseInt(document.getElementById('ySmallPerBig').value) || 1;
   const xBigDiv = parseInt(document.getElementById('xBigDiv').value) || 1;
   const xSmallPerBig = parseInt(document.getElementById('xSmallPerBig').value) || 1;
-  const yMin = parseFloat(document.getElementById('yMin').value) || 0;
-  const yMax = parseFloat(document.getElementById('yMax').value) || 1;
-  const xMin = parseFloat(document.getElementById('xMin').value) || 0;
-  const xMax = parseFloat(document.getElementById('xMax').value) || 1;
+  
+  let yMin = parseFloat(document.getElementById('yMin').value);
+  let yMax = parseFloat(document.getElementById('yMax').value);
+  let xMin = parseFloat(document.getElementById('xMin').value);
+  let xMax = parseFloat(document.getElementById('xMax').value);
+  
+  // Smart defaults: if min or max is missing, set reasonable values
+  if (isNaN(xMin)) xMin = 0;
+  if (isNaN(xMax)) xMax = xMin + 100;  // Default range of 100 if max not set
+  if (isNaN(yMin)) yMin = 0;
+  if (isNaN(yMax)) yMax = yMin + 100;  // Default range of 100 if max not set
+  
+  // Validation: ensure max > min
+  if (xMax <= xMin) {
+    alert('X Max must be greater than X Min');
+    xMax = xMin + 100;
+  }
+  if (yMax <= yMin) {
+    alert('Y Max must be greater than Y Min');
+    yMax = yMin + 100;
+  }
   
   const yTotalDiv = yBigDiv * ySmallPerBig;
   const xTotalDiv = xBigDiv * xSmallPerBig;
@@ -107,7 +128,7 @@ function getPerDivValues() {
   const yPerDivCalc = yRange / yTotalDiv;
   const xPerDivCalc = xRange / xTotalDiv;
   
-  // Use custom value if provided and greater than or equal to calculated, otherwise use calculated
+  // Use custom value if provided and greater than or equal to calculated
   const xPerDivCustom = parseFloat(document.getElementById('xPerDivInput').value);
   const yPerDivCustom = parseFloat(document.getElementById('yPerDivInput').value);
   
@@ -162,8 +183,8 @@ function calculateSolution() {
     const y = parseFloat(tableRows[i].cells[2].children[0].value);
     
     if (!isNaN(x) && !isNaN(y)) {
-      const xDiv = Math.round((x - xMin) / xPerDiv);
-      const yDiv = Math.round((y - yMin) / yPerDiv);
+      const xDiv = roundHalfUp((x - xMin) / xPerDiv);
+      const yDiv = roundHalfUp((y - yMin) / yPerDiv);
       
       tableRows[i].cells[3].textContent = xDiv;
       tableRows[i].cells[4].textContent = yDiv;
@@ -399,8 +420,8 @@ function generateGraph() {
     const y = parseFloat(tableRows[i].cells[2].children[0].value);
     
     if (!isNaN(x) && !isNaN(y)) {
-      xDivs.push(Math.round((x - xMin) / xPerDiv));
-      yDivs.push(Math.round((y - yMin) / yPerDiv));
+      xDivs.push(roundHalfUp((x - xMin) / xPerDiv));
+      yDivs.push(roundHalfUp((y - yMin) / yPerDiv));
       labels.push(`(${x}, ${y})`);
     }
   }
