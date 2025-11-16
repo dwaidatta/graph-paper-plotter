@@ -1,269 +1,594 @@
+// Constants
 const PIXELS_PER_DIV = 8;
+
+// State
 let regressionLines = [];
 let referenceLines = [];
 let showDataPoints = true;
+let showConnectingLines = true;
 let showRegressionLines = true;
 let showReferenceLines = true;
+let graphCollapsed = false;
 
+// Rounding function - always rounds 0.5 and above up
 function roundHalfUp(num) {
   return Math.floor(num + 0.5);
 }
 
+// Demo Data Loaders
 function loadDemo1() {
-  document.getElementById('yBigDiv').value = 20;
-  document.getElementById('ySmallPerBig').value = 10;
-  document.getElementById('yMin').value = 151;
-  document.getElementById('yMax').value = 315;
-  document.getElementById('xBigDiv').value = 15;
+  // Demo 1: Conductivity vs Concentration
+  document.getElementById('xBigDivisions').value = 12;
   document.getElementById('xSmallPerBig').value = 10;
-  document.getElementById('xMin').value = 10;
-  document.getElementById('xMax').value = 50;
-  document.getElementById('xLabel').value = 'Volume (mL)';
-  document.getElementById('yLabel').value = 'pH';
-  document.getElementById('graphTitle').value = 'pH vs Volume Added';
+  document.getElementById('xMinValue').value = 0;
+  document.getElementById('xMaxValue').value = 60;
+  document.getElementById('yBigDivisions').value = 18;
+  document.getElementById('ySmallPerBig').value = 10;
+  document.getElementById('yMinValue').value = 0;
+  document.getElementById('yMaxValue').value = 180;
+  document.getElementById('xAxisLabel').value = 'Concentration (mM)';
+  document.getElementById('yAxisLabel').value = 'Conductivity (μS/cm)';
+  document.getElementById('graphTitle').value = 'Conductivity vs Concentration';
   
-  const data = [
-    [10, 151], [20, 175], [30, 200], [40, 250], [50, 315]
+  const demoData = [
+    [0, 0], [10, 30], [20, 60], [30, 90], [40, 120], [50, 150], [60, 180]
   ];
   
-  const tbody = document.getElementById('dataTable').getElementsByTagName('tbody')[0];
-  const rows = tbody.rows;
-  for (let i = 0; i < data.length && i < rows.length; i++) {
-    rows[i].cells[1].children[0].value = data[i][0];
-    rows[i].cells[2].children[0].value = data[i][1];
-    clearSolution(rows[i].cells[1].children[0]);
-  }
-  
-  updateMinValues();
+  loadDemoData(demoData);
+  updateCalculatedParameters();
 }
 
 function loadDemo2() {
-  document.getElementById('yBigDiv').value = 18;
-  document.getElementById('ySmallPerBig').value = 10;
-  document.getElementById('yMin').value = 0;
-  document.getElementById('yMax').value = 100;
-  document.getElementById('xBigDiv').value = 20;
+  // Demo 2: Pressure vs Volume (Boyle's Law)
+  document.getElementById('xBigDivisions').value = 20;
   document.getElementById('xSmallPerBig').value = 10;
-  document.getElementById('xMin').value = 0;
-  document.getElementById('xMax').value = 60;
-  document.getElementById('xLabel').value = 'Time (min)';
-  document.getElementById('yLabel').value = 'Temperature (°C)';
-  document.getElementById('graphTitle').value = 'Temperature vs Time';
+  document.getElementById('xMinValue').value = 20;
+  document.getElementById('xMaxValue').value = 100;
+  document.getElementById('yBigDivisions').value = 16;
+  document.getElementById('ySmallPerBig').value = 10;
+  document.getElementById('yMinValue').value = 0;
+  document.getElementById('yMaxValue').value = 80;
+  document.getElementById('xAxisLabel').value = 'Volume (mL)';
+  document.getElementById('yAxisLabel').value = 'Pressure (kPa)';
+  document.getElementById('graphTitle').value = 'Pressure vs Volume (Boyle\'s Law)';
   
-  const data = [
-    [0, 25], [15, 45], [30, 70], [45, 85], [60, 95]
+  const demoData = [
+    [20, 80], [30, 53.3], [40, 40], [50, 32], [60, 26.7], [80, 20], [100, 16]
   ];
   
+  loadDemoData(demoData);
+  updateCalculatedParameters();
+}
+
+function loadDemoData(data) {
   const tbody = document.getElementById('dataTable').getElementsByTagName('tbody')[0];
   const rows = tbody.rows;
+  
   for (let i = 0; i < data.length && i < rows.length; i++) {
     rows[i].cells[1].children[0].value = data[i][0];
     rows[i].cells[2].children[0].value = data[i][1];
-    clearSolution(rows[i].cells[1].children[0]);
+    rows[i].cells[3].textContent = '';
+    rows[i].cells[4].textContent = '';
   }
   
-  updateMinValues();
+  // Clear remaining rows
+  for (let i = data.length; i < rows.length; i++) {
+    rows[i].cells[1].children[0].value = '';
+    rows[i].cells[2].children[0].value = '';
+    rows[i].cells[3].textContent = '';
+    rows[i].cells[4].textContent = '';
+  }
 }
 
-function updateMinValues() {
-  const yBigDiv = parseInt(document.getElementById('yBigDiv').value) || 1;
-  const ySmallPerBig = parseInt(document.getElementById('ySmallPerBig').value) || 1;
-  const xBigDiv = parseInt(document.getElementById('xBigDiv').value) || 1;
-  const xSmallPerBig = parseInt(document.getElementById('xSmallPerBig').value) || 1;
-  const yMin = parseFloat(document.getElementById('yMin').value) || 0;
-  const yMax = parseFloat(document.getElementById('yMax').value) || 1;
-  const xMin = parseFloat(document.getElementById('xMin').value) || 0;
-  const xMax = parseFloat(document.getElementById('xMax').value) || 1;
+// Get parameter values with smart defaults
+function getParameters() {
+  let xBigDivisions = parseInt(document.getElementById('xBigDivisions').value);
+  let xSmallPerBig = parseInt(document.getElementById('xSmallPerBig').value);
+  let xMinValue = parseFloat(document.getElementById('xMinValue').value);
+  let xMaxValue = parseFloat(document.getElementById('xMaxValue').value);
+  let yBigDivisions = parseInt(document.getElementById('yBigDivisions').value);
+  let ySmallPerBig = parseInt(document.getElementById('ySmallPerBig').value);
+  let yMinValue = parseFloat(document.getElementById('yMinValue').value);
+  let yMaxValue = parseFloat(document.getElementById('yMaxValue').value);
   
-  const yTotalDiv = yBigDiv * ySmallPerBig;
-  const xTotalDiv = xBigDiv * xSmallPerBig;
-  const yRange = yMax - yMin;
-  const xRange = xMax - xMin;
-  const yPerDivCalc = yRange / yTotalDiv;
-  const xPerDivCalc = xRange / xTotalDiv;
+  // Smart defaults
+  if (isNaN(xBigDivisions)) xBigDivisions = 1;
+  if (isNaN(xSmallPerBig)) xSmallPerBig = 1;
+  if (isNaN(xMinValue)) xMinValue = 0;
+  if (isNaN(xMaxValue)) xMaxValue = xMinValue + 100;
+  if (isNaN(yBigDivisions)) yBigDivisions = 1;
+  if (isNaN(ySmallPerBig)) ySmallPerBig = 1;
+  if (isNaN(yMinValue)) yMinValue = 0;
+  if (isNaN(yMaxValue)) yMaxValue = yMinValue + 100;
   
-  // Display calculated values as before
-  document.getElementById('minValuesText').innerHTML = `
-    <strong>X-axis:</strong> ${xTotalDiv} total divisions (${xBigDiv} × ${xSmallPerBig}) | Smallest division = <u>${xPerDivCalc.toFixed(4)}</u> units<br>
-    <strong>Y-axis:</strong> ${yTotalDiv} total divisions (${yBigDiv} × ${ySmallPerBig}) | Smallest division = <u>${yPerDivCalc.toFixed(4)}</u> units
+  // Validation
+  if (xMaxValue <= xMinValue) {
+    alert('X Maximum must be greater than X Minimum');
+    xMaxValue = xMinValue + 100;
+    document.getElementById('xMaxValue').value = xMaxValue;
+  }
+  if (yMaxValue <= yMinValue) {
+    alert('Y Maximum must be greater than Y Minimum');
+    yMaxValue = yMinValue + 100;
+    document.getElementById('yMaxValue').value = yMaxValue;
+  }
+  
+  // Calculate divisions
+  const xTotalDivisions = xBigDivisions * xSmallPerBig;
+  const yTotalDivisions = yBigDivisions * ySmallPerBig;
+  const xRange = xMaxValue - xMinValue;
+  const yRange = yMaxValue - yMinValue;
+  const xSmallestDivCalc = xRange / xTotalDivisions;
+  const ySmallestDivCalc = yRange / yTotalDivisions;
+  
+  // Check for overrides
+  const xOverride = parseFloat(document.getElementById('xSmallestDivOverride').value);
+  const yOverride = parseFloat(document.getElementById('ySmallestDivOverride').value);
+  
+  const xSmallestDiv = (xOverride && xOverride >= xSmallestDivCalc) ? xOverride : xSmallestDivCalc;
+  const ySmallestDiv = (yOverride && yOverride >= ySmallestDivCalc) ? yOverride : ySmallestDivCalc;
+  
+  return {
+    xBigDivisions, xSmallPerBig, xMinValue, xMaxValue, xTotalDivisions, xSmallestDiv, xSmallestDivCalc,
+    yBigDivisions, ySmallPerBig, yMinValue, yMaxValue, yTotalDivisions, ySmallestDiv, ySmallestDivCalc
+  };
+}
+
+// Update calculated parameters display
+function updateCalculatedParameters() {
+  const params = getParameters();
+  
+  const resultBox = document.getElementById('calculatedResults');
+  const resultText = document.getElementById('calculatedText');
+  
+  resultText.innerHTML = `
+    <div style="margin-bottom:10px;">
+      <strong>X-Axis:</strong> ${params.xTotalDivisions} total divisions 
+      (${params.xBigDivisions} × ${params.xSmallPerBig}) | 
+      <strong>Smallest division = <span class="calc-highlight">${params.xSmallestDivCalc.toFixed(4)}</span> units</strong>
+    </div>
+    <div>
+      <strong>Y-Axis:</strong> ${params.yTotalDivisions} total divisions 
+      (${params.yBigDivisions} × ${params.ySmallPerBig}) | 
+      <strong>Smallest division = <span class="calc-highlight">${params.ySmallestDivCalc.toFixed(4)}</span> units</strong>
+    </div>
   `;
   
-  // Update placeholders for override inputs
-  document.getElementById('xPerDivInput').placeholder = `Default: ${xPerDivCalc.toFixed(4)}`;
-  document.getElementById('yPerDivInput').placeholder = `Default: ${yPerDivCalc.toFixed(4)}`;
+  resultBox.classList.add('show');
+  
+  // Update placeholders
+  document.getElementById('xSmallestDivOverride').placeholder = `Auto: ${params.xSmallestDivCalc.toFixed(4)}`;
+  document.getElementById('ySmallestDivOverride').placeholder = `Auto: ${params.ySmallestDivCalc.toFixed(4)}`;
 }
 
-// Helper function to get the actual per-div values (user input or calculated)
-function getPerDivValues() {
-  const yBigDiv = parseInt(document.getElementById('yBigDiv').value) || 1;
-  const ySmallPerBig = parseInt(document.getElementById('ySmallPerBig').value) || 1;
-  const xBigDiv = parseInt(document.getElementById('xBigDiv').value) || 1;
-  const xSmallPerBig = parseInt(document.getElementById('xSmallPerBig').value) || 1;
-  
-  let yMin = parseFloat(document.getElementById('yMin').value);
-  let yMax = parseFloat(document.getElementById('yMax').value);
-  let xMin = parseFloat(document.getElementById('xMin').value);
-  let xMax = parseFloat(document.getElementById('xMax').value);
-  
-  // Smart defaults: if min or max is missing, set reasonable values
-  if (isNaN(xMin)) xMin = 0;
-  if (isNaN(xMax)) xMax = xMin + 100;  // Default range of 100 if max not set
-  if (isNaN(yMin)) yMin = 0;
-  if (isNaN(yMax)) yMax = yMin + 100;  // Default range of 100 if max not set
-  
-  // Validation: ensure max > min
-  if (xMax <= xMin) {
-    alert('X Max must be greater than X Min');
-    xMax = xMin + 100;
-  }
-  if (yMax <= yMin) {
-    alert('Y Max must be greater than Y Min');
-    yMax = yMin + 100;
-  }
-  
-  const yTotalDiv = yBigDiv * ySmallPerBig;
-  const xTotalDiv = xBigDiv * xSmallPerBig;
-  const yRange = yMax - yMin;
-  const xRange = xMax - xMin;
-  const yPerDivCalc = yRange / yTotalDiv;
-  const xPerDivCalc = xRange / xTotalDiv;
-  
-  // Use custom value if provided and greater than or equal to calculated
-  const xPerDivCustom = parseFloat(document.getElementById('xPerDivInput').value);
-  const yPerDivCustom = parseFloat(document.getElementById('yPerDivInput').value);
-  
-  const xPerDiv = (xPerDivCustom && xPerDivCustom >= xPerDivCalc) ? xPerDivCustom : xPerDivCalc;
-  const yPerDiv = (yPerDivCustom && yPerDivCustom >= yPerDivCalc) ? yPerDivCustom : yPerDivCalc;
-  
-  return { xPerDiv, yPerDiv, xTotalDiv, yTotalDiv, xMin, yMin, xMax, yMax };
-}
-
-
-function clearSolution(input) {
+// Clear calculation when data changes
+function clearCalculation(input) {
   const row = input.parentNode.parentNode;
   row.cells[3].textContent = '';
   row.cells[4].textContent = '';
 }
 
-function toggleAllRegression() {
-  const selectAll = document.getElementById('selectAll').checked;
-  const checkboxes = document.querySelectorAll('.reg-check');
+// Toggle all point selection
+function toggleAllSelection() {
+  const selectAll = document.getElementById('selectAllPoints').checked;
+  const checkboxes = document.querySelectorAll('.point-select');
   checkboxes.forEach(cb => cb.checked = selectAll);
 }
 
-function addRow() {
+// Add new data row
+function addDataRow() {
   const table = document.getElementById('dataTable').getElementsByTagName('tbody')[0];
   const row = table.insertRow();
   row.innerHTML = `
-    <td><input type="checkbox" class="reg-check"></td>
-    <td><input type="number" step="any" oninput="clearSolution(this)"></td>
-    <td><input type="number" step="any" oninput="clearSolution(this)"></td>
-    <td class="solution-cell"></td>
-    <td class="solution-cell"></td>
-    <td><button class="btn btn-red" onclick="removeRow(this)"><i class="fas fa-trash"></i></button></td>
+    <td><input type="checkbox" class="point-select"></td>
+    <td><input type="number" step="any" oninput="clearCalculation(this)"></td>
+    <td><input type="number" step="any" oninput="clearCalculation(this)"></td>
+    <td></td>
+    <td></td>
+    <td><button class="btn-icon" onclick="deleteRow(this)"><i class="fas fa-trash-alt"></i></button></td>
   `;
 }
 
-function removeRow(btn) {
+// Delete row
+function deleteRow(btn) {
   const row = btn.parentNode.parentNode;
-  if (document.getElementById('dataTable').getElementsByTagName('tbody')[0].rows.length > 1) {
-    row.parentNode.removeChild(row);
+  const tbody = row.parentNode;
+  if (tbody.rows.length > 1) {
+    tbody.removeChild(row);
   } else {
-    alert('At least one data point required');
+    alert('At least one data row is required');
   }
 }
 
-function calculateSolution() {
-  const { xPerDiv, yPerDiv, xTotalDiv, yTotalDiv, xMin, yMin, xMax, yMax } = getPerDivValues();
-  
+// Calculate divisions for all data points
+function calculateDivisions() {
+  const params = getParameters();
   const tableRows = document.getElementById('dataTable').getElementsByTagName('tbody')[0].rows;
   
+  let validPointCount = 0;
+  
   for (let i = 0; i < tableRows.length; i++) {
-    const x = parseFloat(tableRows[i].cells[1].children[0].value);
-    const y = parseFloat(tableRows[i].cells[2].children[0].value);
+    const xValue = parseFloat(tableRows[i].cells[1].children[0].value);
+    const yValue = parseFloat(tableRows[i].cells[2].children[0].value);
     
-    if (!isNaN(x) && !isNaN(y)) {
-      const xDiv = roundHalfUp((x - xMin) / xPerDiv);
-      const yDiv = roundHalfUp((y - yMin) / yPerDiv);
+    if (!isNaN(xValue) && !isNaN(yValue)) {
+      const xDivision = roundHalfUp((xValue - params.xMinValue) / params.xSmallestDiv);
+      const yDivision = roundHalfUp((yValue - params.yMinValue) / params.ySmallestDiv);
       
-      tableRows[i].cells[3].textContent = xDiv;
-      tableRows[i].cells[4].textContent = yDiv;
+      tableRows[i].cells[3].textContent = xDivision;
+      tableRows[i].cells[4].textContent = yDivision;
+      
+      validPointCount++;
     }
   }
   
-  document.getElementById('calcInfo').classList.add('show');
-  document.getElementById('calcText').innerHTML = `
-    <strong>Calculations Complete:</strong><br>
-    X: ${xTotalDiv} divisions | ${xPerDiv.toFixed(4)} units/div | Range: ${xMin} to ${xMax}<br>
-    Y: ${yTotalDiv} divisions | ${yPerDiv.toFixed(4)} units/div | Range: ${yMin} to ${yMax}
-  `;
-  document.getElementById('graphBtn').style.display = 'inline-block';
+  if (validPointCount === 0) {
+    alert('Please enter at least one valid data point');
+    return;
+  }
+  
+  document.getElementById('graphSettingsSection').style.display = 'block';
+  
+  // Scroll to graph settings
+  document.getElementById('graphSettingsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-function calculateRegression(xVals, yVals) {
-  const n = xVals.length;
+
+// Toggle graph collapse
+function toggleGraphCollapse() {
+  graphCollapsed = !graphCollapsed;
+  const container = document.getElementById('graphContainer');
+  const icon = document.getElementById('collapseIcon');
+  const text = document.getElementById('collapseText');
+  
+  if (graphCollapsed) {
+    container.classList.add('collapsed');
+    icon.className = 'fas fa-chevron-down';
+    text.textContent = 'Expand';
+  } else {
+    container.classList.remove('collapsed');
+    icon.className = 'fas fa-chevron-up';
+    text.textContent = 'Collapse';
+  }
+}
+
+
+// Toggle display options
+function toggleDisplay() {
+  showDataPoints = document.getElementById('showPoints').checked;
+  showConnectingLines = document.getElementById('showLines').checked;
+  showRegressionLines = document.getElementById('showRegressions').checked;
+  showReferenceLines = document.getElementById('showReferences').checked;
+  
+  if (document.getElementById('plotlyGraph').children.length > 0) {
+    regenerateGraph();
+  }
+}
+
+// Generate graph
+function generateGraph() {
+  const params = getParameters();
+  const tableRows = document.getElementById('dataTable').getElementsByTagName('tbody')[0].rows;
+  
+  const xDivisions = [];
+  const yDivisions = [];
+  const xOriginalValues = [];  // NEW: Store original values
+  const yOriginalValues = [];  // NEW: Store original values
+  const labels = [];
+  
+  for (let i = 0; i < tableRows.length; i++) {
+    const xValue = parseFloat(tableRows[i].cells[1].children[0].value);
+    const yValue = parseFloat(tableRows[i].cells[2].children[0].value);
+    
+    if (!isNaN(xValue) && !isNaN(yValue)) {
+      const xDiv = roundHalfUp((xValue - params.xMinValue) / params.xSmallestDiv);
+      const yDiv = roundHalfUp((yValue - params.yMinValue) / params.ySmallestDiv);
+      
+      xDivisions.push(xDiv);
+      yDivisions.push(yDiv);
+      xOriginalValues.push(xValue);  // NEW: Store original
+      yOriginalValues.push(yValue);  // NEW: Store original
+      labels.push(`(${xValue}, ${yValue})`);
+    }
+  }
+  
+  if (xDivisions.length === 0) {
+    alert('No valid data points to plot');
+    return;
+  }
+  
+  const tickInterval = parseInt(document.getElementById('tickInterval').value) || 10;
+  const xLabel = document.getElementById('xAxisLabel').value || 'X Axis';
+  const yLabel = document.getElementById('yAxisLabel').value || 'Y Axis';
+  const graphTitle = document.getElementById('graphTitle').value || 'Graph';
+  
+  // Generate tick positions and labels
+  const xTickPositions = [];
+  const xTickLabels = [];
+  for (let i = 0; i <= params.xTotalDivisions; i += tickInterval) {
+    xTickPositions.push(i);
+    xTickLabels.push((params.xMinValue + (i * params.xSmallestDiv)).toFixed(2));
+  }
+  
+  const yTickPositions = [];
+  const yTickLabels = [];
+  for (let i = 0; i <= params.yTotalDivisions; i += tickInterval) {
+    yTickPositions.push(i);
+    yTickLabels.push((params.yMinValue + (i * params.ySmallestDiv)).toFixed(2));
+  }
+  
+  // Division box annotation
+  const divBoxPosition = document.getElementById('divBoxPosition').value;
+  let annotationX, annotationY, xAnchor, yAnchor;
+  
+  switch(divBoxPosition) {
+    case 'top-left':
+      annotationX = 0.02; annotationY = 0.98; xAnchor = 'left'; yAnchor = 'top';
+      break;
+    case 'top-right':
+      annotationX = 0.98; annotationY = 0.98; xAnchor = 'right'; yAnchor = 'top';
+      break;
+    case 'bottom-left':
+      annotationX = 0.02; annotationY = 0.02; xAnchor = 'left'; yAnchor = 'bottom';
+      break;
+    case 'bottom-right':
+      annotationX = 0.98; annotationY = 0.02; xAnchor = 'right'; yAnchor = 'bottom';
+      break;
+    default:
+      annotationX = 0.02; annotationY = 0.98; xAnchor = 'left'; yAnchor = 'top';
+  }
+  
+  const annotations = [{
+    text: `<b>1 smallest division:</b><br>X = ${params.xSmallestDiv.toFixed(4)}<br>Y = ${params.ySmallestDiv.toFixed(4)}`,
+    xref: 'paper',
+    yref: 'paper',
+    x: annotationX,
+    y: annotationY,
+    xanchor: xAnchor,
+    yanchor: yAnchor,
+    showarrow: false,
+    bgcolor: '#fffaed',
+    bordercolor: '#ffd54f',
+    borderwidth: 2,
+    borderpad: 8,
+    font: {family: 'Cambria, Georgia, serif', size: 11, color: '#5d4037'}
+  }];
+  
+  // Reference lines as shapes
+  const shapes = [];
+  if (showReferenceLines) {
+    referenceLines.forEach(refLine => {
+      if (refLine.type === 'vertical') {
+        shapes.push({
+          type: 'line',
+          xref: 'x',
+          yref: 'paper',
+          x0: refLine.position,
+          y0: 0,
+          x1: refLine.position,
+          y1: 1,
+          line: { dash: refLine.style, color: refLine.color, width: refLine.width },
+          editable: true
+        });
+      } else {
+        shapes.push({
+          type: 'line',
+          xref: 'paper',
+          yref: 'y',
+          x0: 0,
+          y0: refLine.position,
+          x1: 1,
+          y1: refLine.position,
+          line: { dash: refLine.style, color: refLine.color, width: refLine.width },
+          editable: true
+        });
+      }
+    });
+  }
+  
+  const graphWidth = params.xTotalDivisions * PIXELS_PER_DIV;
+  const graphHeight = params.yTotalDivisions * PIXELS_PER_DIV;
+  
+  const layout = {
+    title: {text: graphTitle, font: {family: 'Cambria, Georgia, serif', size: 18, color: '#003366'}},
+    xaxis: {
+      title: {text: `──────── ${xLabel} ────────➤`, font: {family: 'Cambria, Georgia, serif', size: 14}},
+      range: [0, params.xTotalDivisions],
+      tickmode: 'array',
+      tickvals: xTickPositions,
+      ticktext: xTickLabels,
+      showgrid: true,
+      gridcolor: '#2d8659',
+      gridwidth: 2,
+      zeroline: false,
+      tickfont: {family: 'Cambria, Georgia, serif', size: 11},
+      minor: {dtick: 1, showgrid: true, gridcolor: '#90d9b8', gridwidth: 0.5},
+      scaleanchor: 'y',
+      scaleratio: 1
+    },
+    yaxis: {
+      title: {text: `──────── ${yLabel} ────────➤`, font: {family: 'Cambria, Georgia, serif', size: 14}},
+      range: [0, params.yTotalDivisions],
+      tickmode: 'array',
+      tickvals: yTickPositions,
+      ticktext: yTickLabels,
+      showgrid: true,
+      gridcolor: '#2d8659',
+      gridwidth: 2,
+      zeroline: false,
+      tickfont: {family: 'Cambria, Georgia, serif', size: 11},
+      minor: {dtick: 1, showgrid: true, gridcolor: '#90d9b8', gridwidth: 0.5}
+    },
+    width: graphWidth + 120,
+    height: graphHeight + 100,
+    margin: {l: 80, r: 50, t: 80, b: 70},
+    font: {family: 'Cambria, Georgia, serif', size: 12},
+    plot_bgcolor: '#fefef8',
+    paper_bgcolor: '#ffffff',
+    autosize: false,
+    annotations: annotations,
+    shapes: shapes
+  };
+  
+  const traces = [];
+  
+  // Data points trace
+  if (showDataPoints || showConnectingLines) {
+    let mode = [];
+    if (showDataPoints) mode.push('markers');
+    if (showConnectingLines) mode.push('lines');
+    mode.push('text');
+    
+    traces.push({
+      x: xDivisions,
+      y: yDivisions,
+      mode: mode.join('+'),
+      type: 'scatter',
+      marker: showDataPoints ? {size: 10, color: '#c41e3a', symbol: 'circle', line: {width: 2, color: '#8b0000'}} : undefined,
+      line: showConnectingLines ? {color: '#003366', width: 2.5} : undefined,
+      text: labels,
+      textposition: 'top center',
+      textfont: {family: 'Cambria, Georgia, serif', size: 10, color: '#000'},
+      name: 'Data',
+      // Custom data for hover
+      customdata: xOriginalValues.map((xVal, i) => [xVal, yOriginalValues[i], xDivisions[i], yDivisions[i]]),
+      // Custom hover template
+      hovertemplate: 
+        'Values: (%{customdata[0]}, %{customdata[1]})<br>' +
+        'Divisions: (%{customdata[2]}, %{customdata[3]})' +
+        '<extra></extra>',
+      showlegend: true
+    });
+  }
+  
+  // Regression lines
+  if (showRegressionLines) {
+    regressionLines.forEach((reg, index) => {
+      traces.push({
+        x: reg.xValues,
+        y: reg.yValues,
+        mode: 'lines',
+        type: 'scatter',
+        line: {color: '#ff6b35', width: 2.5, dash: 'dash'},
+        name: `Regression ${index + 1}`,
+        showlegend: true
+      });
+    });
+  }
+  
+  const config = {
+    displayModeBar: true,
+    modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
+    toImageButtonOptions: {
+      format: 'jpeg',
+      filename: 'graph_plot',
+      width: graphWidth + 120,
+      height: graphHeight + 100,
+      scale: 10
+    },
+    responsive: true,
+    edits: { shapePosition: true }
+  };
+  
+  
+  Plotly.newPlot('plotlyGraph', traces, layout, config);
+  
+  // Show sections
+  document.getElementById('graphDisplaySection').style.display = 'block';
+  document.getElementById('reportSection').style.display = 'block';
+  
+  // Scroll to graph
+  document.getElementById('graphDisplaySection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+
+function regenerateGraph() {
+  if (document.getElementById('plotlyGraph').children.length > 0) {
+    generateGraph();
+  }
+}
+
+// Download graph as high-quality image
+function downloadGraphImage() {
+  const params = getParameters();
+  const graphWidth = params.xTotalDivisions * PIXELS_PER_DIV + 120;
+  const graphHeight = params.yTotalDivisions * PIXELS_PER_DIV + 100;
+  
+  const graphDiv = document.getElementById('plotlyGraph');
+  Plotly.downloadImage(graphDiv, {
+    format: 'jpeg',
+    width: graphWidth,
+    height: graphHeight,
+    scale: 10,
+    filename: 'graph_plot'
+  });
+}
+
+// Regression Analysis
+function calculateRegressionLine(xValues, yValues) {
+  const n = xValues.length;
   if (n < 2) return null;
   
-  const sumX = xVals.reduce((a, b) => a + b, 0);
-  const sumY = yVals.reduce((a, b) => a + b, 0);
-  const sumXY = xVals.reduce((sum, x, i) => sum + x * yVals[i], 0);
-  const sumX2 = xVals.reduce((sum, x) => sum + x * x, 0);
+  const sumX = xValues.reduce((a, b) => a + b, 0);
+  const sumY = yValues.reduce((a, b) => a + b, 0);
+  const sumXY = xValues.reduce((sum, x, i) => sum + x * yValues[i], 0);
+  const sumX2 = xValues.reduce((sum, x) => sum + x * x, 0);
   
   const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
   const intercept = (sumY - slope * sumX) / n;
   
   const yMean = sumY / n;
-  const ssTotal = yVals.reduce((sum, y) => sum + Math.pow(y - yMean, 2), 0);
-  const ssResidual = yVals.reduce((sum, y, i) => {
-    const yPred = slope * xVals[i] + intercept;
+  const ssTotal = yValues.reduce((sum, y) => sum + Math.pow(y - yMean, 2), 0);
+  const ssResidual = yValues.reduce((sum, y, i) => {
+    const yPred = slope * xValues[i] + intercept;
     return sum + Math.pow(y - yPred, 2);
   }, 0);
   const r2 = 1 - (ssResidual / ssTotal);
   
-  return { slope, intercept, r2, equation: `y = ${slope.toFixed(4)}x + ${intercept.toFixed(4)}` };
+  return { 
+    slope, 
+    intercept, 
+    r2, 
+    equation: `y = ${slope.toFixed(4)}x + ${intercept.toFixed(4)}` 
+  };
 }
 
 function addRegressionLine() {
+  const params = getParameters();
   const tableRows = document.getElementById('dataTable').getElementsByTagName('tbody')[0].rows;
-  let selectedX = [], selectedY = [];
+  
+  const selectedXDiv = [];
+  const selectedYDiv = [];
   
   for (let i = 0; i < tableRows.length; i++) {
     if (tableRows[i].cells[0].children[0].checked) {
       const xDiv = parseInt(tableRows[i].cells[3].textContent);
       const yDiv = parseInt(tableRows[i].cells[4].textContent);
       if (!isNaN(xDiv) && !isNaN(yDiv)) {
-        selectedX.push(xDiv);
-        selectedY.push(yDiv);
+        selectedXDiv.push(xDiv);
+        selectedYDiv.push(yDiv);
       }
     }
   }
   
-  if (selectedX.length < 2) {
-    alert('Please select at least 2 points for regression');
+  if (selectedXDiv.length < 2) {
+    alert('Please select at least 2 points for regression analysis');
     return;
   }
   
-  const regression = calculateRegression(selectedX, selectedY);
+  const regression = calculateRegressionLine(selectedXDiv, selectedYDiv);
   if (!regression) return;
   
-  const yBigDiv = parseInt(document.getElementById('yBigDiv').value);
-  const ySmallPerBig = parseInt(document.getElementById('ySmallPerBig').value);
-  const xBigDiv = parseInt(document.getElementById('xBigDiv').value);
-  const xSmallPerBig = parseInt(document.getElementById('xSmallPerBig').value);
-  const yTotalDiv = yBigDiv * ySmallPerBig;
-  const xTotalDiv = xBigDiv * xSmallPerBig;
+  const xLineValues = [0, params.xTotalDivisions];
+  const yLineValues = xLineValues.map(x => regression.slope * x + regression.intercept);
   
-  const regLineX = [0, xTotalDiv];
-  const regLineY = regLineX.map(x => regression.slope * x + regression.intercept);
-  
-  const regId = regressionLines.length;
   regressionLines.push({
-    id: regId,
-    x: regLineX,
-    y: regLineY,
+    id: regressionLines.length,
+    xValues: xLineValues,
+    yValues: yLineValues,
     equation: regression.equation,
     r2: regression.r2,
-    pointCount: selectedX.length
+    pointCount: selectedXDiv.length
   });
   
   updateRegressionList();
@@ -275,366 +600,145 @@ function updateRegressionList() {
   listDiv.innerHTML = '';
   
   regressionLines.forEach((reg, index) => {
-    const regDiv = document.createElement('div');
-    regDiv.className = 'calc-info';
-    regDiv.style.display = 'block';
-    regDiv.innerHTML = `
-      <strong>Regression ${index + 1}:</strong> ${reg.equation} | R² = ${reg.r2.toFixed(4)} | Points: ${reg.pointCount}
-      <button class="btn btn-red" onclick="removeRegression(${index})" style="margin-left:10px; padding:3px 8px; font-size:10px;">
+    const item = document.createElement('div');
+    item.className = 'item-list-item';
+    item.innerHTML = `
+      <div>
+        <strong>Regression ${index + 1}:</strong> ${reg.equation}<br>
+        <small>R² = ${reg.r2.toFixed(4)} | ${reg.pointCount} points</small>
+      </div>
+      <button class="btn btn-red btn-sm" onclick="removeRegressionLine(${index})">
         <i class="fas fa-times"></i> Remove
       </button>
     `;
-    listDiv.appendChild(regDiv);
+    listDiv.appendChild(item);
   });
 }
 
-function removeRegression(index) {
+function removeRegressionLine(index) {
   regressionLines.splice(index, 1);
   updateRegressionList();
   regenerateGraph();
 }
 
 function clearAllRegressions() {
-  regressionLines = [];
-  updateRegressionList();
-  regenerateGraph();
+  if (regressionLines.length === 0) return;
+  if (confirm('Clear all regression lines?')) {
+    regressionLines = [];
+    updateRegressionList();
+    regenerateGraph();
+  }
 }
 
+// Reference Lines
 function addReferenceLine() {
+  const params = getParameters();
   const type = document.getElementById('refLineType').value;
-  const pos = parseFloat(document.getElementById('refLinePos').value);
-  const color = document.getElementById('refLineColor').value;
-  const width = parseFloat(document.getElementById('refLineWidth').value);
+  const position = parseFloat(document.getElementById('refLinePosition').value);
   const style = document.getElementById('refLineStyle').value;
+  const width = parseFloat(document.getElementById('refLineWidth').value);
+  const color = document.getElementById('refLineColor').value;
   
-  const yBigDiv = parseInt(document.getElementById('yBigDiv').value);
-  const ySmallPerBig = parseInt(document.getElementById('ySmallPerBig').value);
-  const xBigDiv = parseInt(document.getElementById('xBigDiv').value);
-  const xSmallPerBig = parseInt(document.getElementById('xSmallPerBig').value);
-  const yTotalDiv = yBigDiv * ySmallPerBig;
-  const xTotalDiv = xBigDiv * xSmallPerBig;
-  
-  if (type === 'vertical' && (pos < 0 || pos > xTotalDiv)) {
-    alert(`Position must be between 0 and ${xTotalDiv}`);
-    return;
-  }
-  if (type === 'horizontal' && (pos < 0 || pos > yTotalDiv)) {
-    alert(`Position must be between 0 and ${yTotalDiv}`);
+  if (isNaN(position)) {
+    alert('Please enter a valid position');
     return;
   }
   
-  referenceLines.push({ type, pos, color, width, style });
-  updateRefLineList();
+  if (type === 'vertical' && (position < 0 || position > params.xTotalDivisions)) {
+    alert(`Position must be between 0 and ${params.xTotalDivisions}`);
+    return;
+  }
+  if (type === 'horizontal' && (position < 0 || position > params.yTotalDivisions)) {
+    alert(`Position must be between 0 and ${params.yTotalDivisions}`);
+    return;
+  }
+  
+  referenceLines.push({ type, position, style, width, color });
+  updateReferenceList();
   regenerateGraph();
 }
 
-function updateRefLineList() {
-  const listDiv = document.getElementById('refLineList');
+function updateReferenceList() {
+  const listDiv = document.getElementById('referenceList');
   listDiv.innerHTML = '';
   
   referenceLines.forEach((line, index) => {
-    const lineDiv = document.createElement('div');
-    lineDiv.className = 'calc-info';
-    lineDiv.style.display = 'block';
-    lineDiv.innerHTML = `
-      <strong>${line.type === 'vertical' ? 'Vertical' : 'Horizontal'} Line ${index + 1}:</strong> Position = ${line.pos} | Color: ${line.color} | Width: ${line.width}px | Style: ${line.style}
-      <button class="btn btn-red" onclick="removeRefLine(${index})" style="margin-left:10px; padding:3px 8px; font-size:10px;">
+    const item = document.createElement('div');
+    item.className = 'item-list-item';
+    item.innerHTML = `
+      <div>
+        <strong>${line.type === 'vertical' ? 'Vertical' : 'Horizontal'} Line ${index + 1}:</strong> 
+        Position = ${line.position}<br>
+        <small>Style: ${line.style} | Width: ${line.width}px | Color: ${line.color}</small>
+      </div>
+      <button class="btn btn-red btn-sm" onclick="removeReferenceLine(${index})">
         <i class="fas fa-times"></i> Remove
       </button>
     `;
-    listDiv.appendChild(lineDiv);
+    listDiv.appendChild(item);
   });
 }
 
-function removeRefLine(index) {
+function removeReferenceLine(index) {
   referenceLines.splice(index, 1);
-  updateRefLineList();
+  updateReferenceList();
   regenerateGraph();
 }
 
-function clearAllRefLines() {
-  referenceLines = [];
-  updateRefLineList();
-  regenerateGraph();
-}
-
-function toggleDataPoints() {
-  showDataPoints = document.getElementById('showDataPoints').checked;
-  regenerateGraph();
-}
-
-function toggleRegressionLines() {
-  showRegressionLines = document.getElementById('showRegressionLines').checked;
-  regenerateGraph();
-}
-
-function toggleReferenceLines() {
-  showReferenceLines = document.getElementById('showReferenceLines').checked;
-  regenerateGraph();
-}
-
-function downloadGraphPNG() {
-  const graphDiv = document.getElementById('graphDiv');
-  
-  // Get exact graph dimensions from parameters
-  const yBigDiv = parseInt(document.getElementById('yBigDiv').value);
-  const ySmallPerBig = parseInt(document.getElementById('ySmallPerBig').value);
-  const xBigDiv = parseInt(document.getElementById('xBigDiv').value);
-  const xSmallPerBig = parseInt(document.getElementById('xSmallPerBig').value);
-  const yTotalDiv = yBigDiv * ySmallPerBig;
-  const xTotalDiv = xBigDiv * xSmallPerBig;
-  const gWidth = xTotalDiv * PIXELS_PER_DIV + 120;
-  const gHeight = yTotalDiv * PIXELS_PER_DIV + 100;
-  
-  Plotly.downloadImage(graphDiv, {
-    format: 'jpeg',
-    width: gWidth,      // Use calculated width
-    height: gHeight,    // Use calculated height
-    scale: 10,           // Kx resolution multiplier
-    filename: 'graph_plot'
-  });
-}
-
-
-function generateGraph() {
-  const { xPerDiv, yPerDiv, xTotalDiv, yTotalDiv, xMin, yMin, xMax, yMax } = getPerDivValues();
-  
-  const yBigDiv = parseInt(document.getElementById('yBigDiv').value);
-  const ySmallPerBig = parseInt(document.getElementById('ySmallPerBig').value);
-  const xBigDiv = parseInt(document.getElementById('xBigDiv').value);
-  const xSmallPerBig = parseInt(document.getElementById('xSmallPerBig').value);
-  
-  const tickInterval = parseInt(document.getElementById('tickInterval').value);
-  const xLabel = document.getElementById('xLabel').value;
-  const yLabel = document.getElementById('yLabel').value;
-  const graphTitle = document.getElementById('graphTitle').value;
-  
-  const graphWidth = xTotalDiv * PIXELS_PER_DIV;
-  const graphHeight = yTotalDiv * PIXELS_PER_DIV;
-  
-  const tableRows = document.getElementById('dataTable').getElementsByTagName('tbody')[0].rows;
-  let xDivs = [], yDivs = [], labels = [];
-  
-  for (let i = 0; i < tableRows.length; i++) {
-    const x = parseFloat(tableRows[i].cells[1].children[0].value);
-    const y = parseFloat(tableRows[i].cells[2].children[0].value);
-    
-    if (!isNaN(x) && !isNaN(y)) {
-      xDivs.push(roundHalfUp((x - xMin) / xPerDiv));
-      yDivs.push(roundHalfUp((y - yMin) / yPerDiv));
-      labels.push(`(${x}, ${y})`);
-    }
-  }
-  
-  let xTickPositions = [], xTickLabels = [];
-  for (let i = 0; i <= xTotalDiv; i += tickInterval) {
-    xTickPositions.push(i);
-    xTickLabels.push((xMin + (i * xPerDiv)).toFixed(2));
-  }
-  
-  let yTickPositions = [], yTickLabels = [];
-  for (let i = 0; i <= yTotalDiv; i += tickInterval) {
-    yTickPositions.push(i);
-    yTickLabels.push((yMin + (i * yPerDiv)).toFixed(2));
-  }
-  
-  const annotations = [{
-    text: `Smallest Divisions<br><b>X: ${xPerDiv.toFixed(4)}<br>Y: ${yPerDiv.toFixed(4)}</b>`,
-    xref: 'paper',
-    yref: 'paper',
-    x: 0.02,
-    y: 0.98,
-    xanchor: 'left',
-    yanchor: 'top',
-    showarrow: false,
-    bgcolor: '#fffacd',
-    bordercolor: '#000',
-    borderwidth: 1,
-    borderpad: 4,
-    font: {family: 'Cambria, Georgia, serif', size: 9, color: '#000'}
-  }];
-  
-  const shapes = [];
-  if (showReferenceLines) {
-    referenceLines.forEach(refLine => {
-      if (refLine.type === 'vertical') {
-        shapes.push({
-          type: 'line',
-          xref: 'x',
-          yref: 'paper',
-          x0: refLine.pos,
-          y0: 0,
-          x1: refLine.pos,
-          y1: 1,
-          line: { dash: refLine.style, color: refLine.color, width: refLine.width },
-          editable: true
-        });
-      } else {
-        shapes.push({
-          type: 'line',
-          xref: 'paper',
-          yref: 'y',
-          x0: 0,
-          y0: refLine.pos,
-          x1: 1,
-          y1: refLine.pos,
-          line: { dash: refLine.style, color: refLine.color, width: refLine.width },
-          editable: true
-        });
-      }
-    });
-  }
-  
-  const layout = {
-    title: {text: graphTitle, font: {family: 'Cambria, Georgia, serif', size: 16, color: '#000'}},
-    xaxis: {
-      title: {text: xLabel, font: {family: 'Cambria, Georgia, serif', size: 13}},
-      range: [0, xTotalDiv],
-      tickmode: 'array',
-      tickvals: xTickPositions,
-      ticktext: xTickLabels,
-      showgrid: true,
-      gridcolor: '#2d8659',
-      gridwidth: 2,
-      zeroline: false,
-      tickfont: {family: 'Cambria, Georgia, serif', size: 10},
-      minor: {dtick: 1, showgrid: true, gridcolor: '#90d9b8', gridwidth: 0.5},
-      scaleanchor: 'y',
-      scaleratio: 1
-    },
-    yaxis: {
-      title: {text: yLabel, font: {family: 'Cambria, Georgia, serif', size: 13}},
-      range: [0, yTotalDiv],
-      tickmode: 'array',
-      tickvals: yTickPositions,
-      ticktext: yTickLabels,
-      showgrid: true,
-      gridcolor: '#2d8659',
-      gridwidth: 2,
-      zeroline: false,
-      tickfont: {family: 'Cambria, Georgia, serif', size: 10},
-      minor: {dtick: 1, showgrid: true, gridcolor: '#90d9b8', gridwidth: 0.5}
-    },
-    width: graphWidth + 120,
-    height: graphHeight + 100,
-    margin: {l: 70, r: 40, t: 70, b: 60},
-    font: {family: 'Cambria, Georgia, serif', size: 11},
-    plot_bgcolor: '#fefef8',
-    paper_bgcolor: '#ffffff',
-    autosize: false,
-    annotations: annotations,
-    shapes: shapes
-  };
-  
-  const traces = [];
-  
-  if (showDataPoints) {
-    traces.push({
-      x: xDivs,
-      y: yDivs,
-      mode: 'markers+lines+text',
-      type: 'scatter',
-      marker: {size: 9, color: '#c41e3a', symbol: 'circle', line: {width: 2, color: '#8b0000'}},
-      line: {color: '#003366', width: 2.5},
-      text: labels,
-      textposition: 'top center',
-      textfont: {family: 'Cambria, Georgia, serif', size: 9, color: '#000'},
-      name: 'Data Points'
-    });
-  }
-  
-  if (showRegressionLines) {
-    regressionLines.forEach((reg, index) => {
-      traces.push({
-        x: reg.x,
-        y: reg.y,
-        mode: 'lines',
-        type: 'scatter',
-        line: {color: '#ff6b35', width: 2, dash: 'dash'},
-        name: `Regression ${index + 1}`,
-        showlegend: true
-      });
-    });
-  }
-  
-  const config = {
-    displayModeBar: true,
-    modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
-    toImageButtonOptions: {
-      format: 'png',
-      filename: 'graph_plot',
-      width: graphWidth + 120,
-      height: graphHeight + 100,
-      scale: 3
-    },
-    responsive: true,
-    edits: { shapePosition: true }
-  };
-  
-  Plotly.newPlot('graphDiv', traces, layout, config);
-  
-  document.getElementById('graphDiv').classList.add('show');
-  document.getElementById('autoscaleInfo').style.display = 'block';
-  document.getElementById('downloadInfo').style.display = 'block';
-  document.getElementById('reportSection').style.display = 'block';
-  document.getElementById('addRegBtn').style.display = 'inline-block';
-  document.getElementById('clearRegBtn').style.display = 'inline-block';
-  document.getElementById('addRefBtn').style.display = 'inline-block';
-  document.getElementById('clearRefBtn').style.display = 'inline-block';
-  document.getElementById('toggleSection').style.display = 'block';
-  
-  document.getElementById('genDate').value = new Date().toISOString().split('T')[0];
-}
-
-function regenerateGraph() {
-  if (document.getElementById('graphDiv').classList.contains('show')) {
-    generateGraph();
+function clearAllReferenceLines() {
+  if (referenceLines.length === 0) return;
+  if (confirm('Clear all reference lines?')) {
+    referenceLines = [];
+    updateReferenceList();
+    regenerateGraph();
   }
 }
 
+// PDF Report Generation
 async function generatePDFReport() {
-  const expName = document.getElementById('expName').value;
-  const name = document.getElementById('studentName').value;
-  const expDate = document.getElementById('expDate').value;
-  const subject = document.getElementById('subject').value;
-  const rollNo = document.getElementById('rollNo').value;
-  const dept = document.getElementById('dept').value;
+  const experimentName = document.getElementById('experimentName').value;
+  const studentName = document.getElementById('studentName').value;
+  const rollNumber = document.getElementById('rollNumber').value;
+  const department = document.getElementById('department').value;
+  const subjectCode = document.getElementById('subjectCode').value;
+  const experimentDate = document.getElementById('experimentDate').value;
   
-  if (!expName || !name || !expDate || !rollNo || !dept) {
-    alert('Please fill all report fields');
+  if (!experimentName || !studentName || !rollNumber || !department || !experimentDate) {
+    alert('Please fill all required fields');
     return;
   }
   
-  document.getElementById('loadingMsg').classList.add('show');
+  document.getElementById('loadingOverlay').classList.add('show');
   
   try {
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('p', 'mm', 'a4');
+    const params = getParameters();
     
+    // Page 1: Report Details
     pdf.setFont('times', 'bold');
     pdf.setFontSize(14);
-    pdf.setFont('times', 'bold');
-    pdf.setFontSize(14);
-    // Split long titles to fit page width
-    const splitTitle = pdf.splitTextToSize(expName, 170);
+    const splitTitle = pdf.splitTextToSize(experimentName, 170);
     pdf.text(splitTitle, 105, 20, { align: 'center' });
     
-    let yPos = 40;
+    let yPos = 20 + (splitTitle.length * 5) + 10;
+    
     pdf.setFontSize(10);
     pdf.setFont('times', 'normal');
     
-    pdf.text(`Name: ${name}`, 20, yPos);
+    pdf.text(`Name: ${studentName}`, 20, yPos);
     yPos += 6;
-    pdf.text(`Roll Number: ${rollNo}`, 20, yPos);
+    pdf.text(`Roll Number: ${rollNumber}`, 20, yPos);
     yPos += 6;
-    pdf.text(`Department: ${dept}`, 20, yPos);
+    pdf.text(`Department: ${department}`, 20, yPos);
     yPos += 6;
-    pdf.text(`Subject Code: ${subject}`, 20, yPos);
+    pdf.text(`Subject Code: ${subjectCode}`, 20, yPos);
     yPos += 6;
-    // Convert date from YYYY-MM-DD to DD-MM-YYYY
-    const dateObj = new Date(expDate);
-    const formattedDate = `${String(dateObj.getDate()).padStart(2, '0')}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${dateObj.getFullYear()}`;
-    pdf.text(`Date of Performing: ${formattedDate}`, 20, yPos);
+    
+    // Format date as DD-MM-YYYY
+    const dateObj = new Date(experimentDate);
+    const formattedExpDate = `${String(dateObj.getDate()).padStart(2, '0')}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${dateObj.getFullYear()}`;
+    pdf.text(`Date of Experiment: ${formattedExpDate}`, 20, yPos);
     yPos += 6;
     
     const now = new Date();
@@ -648,37 +752,26 @@ async function generatePDFReport() {
       second: '2-digit',
       hour12: false
     });
-    pdf.text(`Date and Time of Report Generation: ${dateTime}`, 20, yPos);
+    pdf.text(`Report Generated: ${dateTime}`, 20, yPos);
     
     yPos += 12;
-    pdf.setFont('times', 'normal');
     
-    const yBigDiv = document.getElementById('yBigDiv').value;
-    const ySmallPerBig = document.getElementById('ySmallPerBig').value;
-    const yMin = document.getElementById('yMin').value;
-    const yMax = document.getElementById('yMax').value;
-    const xBigDiv = document.getElementById('xBigDiv').value;
-    const xSmallPerBig = document.getElementById('xSmallPerBig').value;
-    const xMin = document.getElementById('xMin').value;
-    const xMax = document.getElementById('xMax').value;
-    
-    const { xPerDiv, yPerDiv, xTotalDiv, yTotalDiv } = getPerDivValues();
-    
+    // Smallest division
     pdf.text('Smallest division along X: ', 20, yPos);
     pdf.setFont('times', 'bold');
-    pdf.text(`${xPerDiv.toFixed(4)}`, 75, yPos);
+    pdf.text(`${params.xSmallestDiv.toFixed(4)}`, 75, yPos);
     
     yPos += 6;
     pdf.setFont('times', 'normal');
     pdf.text('Smallest division along Y: ', 20, yPos);
     pdf.setFont('times', 'bold');
-    pdf.text(`${yPerDiv.toFixed(4)}`, 75, yPos);
+    pdf.text(`${params.ySmallestDiv.toFixed(4)}`, 75, yPos);
     
     yPos += 12;
     pdf.setFont('times', 'normal');
     
+    // Data table
     const tableRows = document.getElementById('dataTable').getElementsByTagName('tbody')[0].rows;
-    
     const colWidths = [42.5, 42.5, 42.5, 42.5];
     const startX = 20;
     
@@ -705,12 +798,12 @@ async function generatePDFReport() {
     pdf.setFont('times', 'normal');
     
     for (let i = 0; i < tableRows.length; i++) {
-      const x = tableRows[i].cells[1].children[0].value;
-      const y = tableRows[i].cells[2].children[0].value;
+      const xValue = tableRows[i].cells[1].children[0].value;
+      const yValue = tableRows[i].cells[2].children[0].value;
       const xDiv = tableRows[i].cells[3].textContent;
       const yDiv = tableRows[i].cells[4].textContent;
       
-      if (x && y && xDiv && yDiv) {
+      if (xValue && yValue && xDiv && yDiv) {
         if (yPos > 270) {
           pdf.addPage();
           yPos = 20;
@@ -718,11 +811,11 @@ async function generatePDFReport() {
         
         xOffset = startX;
         pdf.rect(xOffset, yPos - 5, colWidths[0], 7);
-        pdf.text(x, xOffset + colWidths[0]/2, yPos, { align: 'center' });
+        pdf.text(xValue, xOffset + colWidths[0]/2, yPos, { align: 'center' });
         xOffset += colWidths[0];
         
         pdf.rect(xOffset, yPos - 5, colWidths[1], 7);
-        pdf.text(y, xOffset + colWidths[1]/2, yPos, { align: 'center' });
+        pdf.text(yValue, xOffset + colWidths[1]/2, yPos, { align: 'center' });
         xOffset += colWidths[1];
         
         pdf.rect(xOffset, yPos - 5, colWidths[2], 7);
@@ -736,6 +829,7 @@ async function generatePDFReport() {
       }
     }
     
+    // Regression lines info
     if (regressionLines.length > 0) {
       yPos += 8;
       if (yPos > 260) {
@@ -752,11 +846,12 @@ async function generatePDFReport() {
           pdf.addPage();
           yPos = 20;
         }
-        pdf.text(`${index + 1}. ${reg.equation} | R-squared = ${reg.r2.toFixed(4)}`, 20, yPos);
+        pdf.text(`${index + 1}. ${reg.equation} | R² = ${reg.r2.toFixed(4)}`, 20, yPos);
         yPos += 5;
       });
     }
     
+    // Signature section
     yPos += 15;
     if (yPos > 250) {
       pdf.addPage();
@@ -774,50 +869,45 @@ async function generatePDFReport() {
     yPos += 6;
     pdf.text('________________________________________________________________________', 20, yPos);
     
-    // New page for graph - no heading, maximize space
+    // Page 2: Graph
     pdf.addPage();
-
-    const graphDiv = document.getElementById('graphDiv');
-
-    const yBigDivVal = parseInt(document.getElementById('yBigDiv').value);
-    const ySmallPerBigVal = parseInt(document.getElementById('ySmallPerBig').value);
-    const xBigDivVal = parseInt(document.getElementById('xBigDiv').value);
-    const xSmallPerBigVal = parseInt(document.getElementById('xSmallPerBig').value);
-    const yTotalDivVal = yBigDivVal * ySmallPerBigVal;
-    const xTotalDivVal = xBigDivVal * xSmallPerBigVal;
-    const gWidth = xTotalDivVal * PIXELS_PER_DIV + 120;
-    const gHeight = yTotalDivVal * PIXELS_PER_DIV + 100;
-
+    
+    const graphDiv = document.getElementById('plotlyGraph');
+    const graphWidth = params.xTotalDivisions * PIXELS_PER_DIV + 120;
+    const graphHeight = params.yTotalDivisions * PIXELS_PER_DIV + 100;
+    
     const imgData = await Plotly.toImage(graphDiv, {
       format: 'jpeg',
-      width: gWidth,
-      height: gHeight,
-      scale: 5
+      width: graphWidth,
+      height: graphHeight,
+      scale: 6
     });
-
-    // Maximize graph on page - use full A4 width and height
-    const pdfWidth = 190;  // Full width minus margins
-    const pdfHeight = (gHeight * pdfWidth) / gWidth;
-
-    // Place from top with minimal margin, maximize space
-    pdf.addImage(imgData, 'jpeg', 10, 10, pdfWidth, Math.min(pdfHeight, 277));
-
     
-    pdf.save(`${expName.replace(/\s+/g, '_')}_report.pdf`);
+    const pdfWidth = 190;
+    const pdfHeight = (graphHeight * pdfWidth) / graphWidth;
+    
+    pdf.addImage(imgData, 'JPEG', 10, 10, pdfWidth, Math.min(pdfHeight, 277));
+    
+    pdf.save(`${experimentName.replace(/\s+/g, '_')}_report.pdf`);
     
   } catch (error) {
     console.error('Error generating PDF:', error);
     alert('Error generating PDF. Please try again.');
   }
   
-  document.getElementById('loadingMsg').classList.remove('show');
+  document.getElementById('loadingOverlay').classList.remove('show');
 }
 
-['yBigDiv', 'ySmallPerBig', 'xBigDiv', 'xSmallPerBig', 'yMin', 'yMax', 'xMin', 'xMax'].forEach(id => {
-  document.getElementById(id).addEventListener('input', updateMinValues);
+// Event listeners for parameter updates
+['xBigDivisions', 'xSmallPerBig', 'xMinValue', 'xMaxValue', 
+ 'yBigDivisions', 'ySmallPerBig', 'yMinValue', 'yMaxValue'].forEach(id => {
+  const element = document.getElementById(id);
+  if (element) {
+    element.addEventListener('input', updateCalculatedParameters);
+  }
 });
 
+// Initialize on load
 window.onload = function() {
-  updateMinValues();
-  document.getElementById('genDate').value = new Date().toISOString().split('T')[0];
+  updateCalculatedParameters();
 };

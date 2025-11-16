@@ -34,11 +34,11 @@ No data is sent to any server, and personal privacy is guaranteed.
 - Upload the project files (`index.html`, `styles.css`, `script.js`) to GitHub  
 - Enable **GitHub Pages** in repository settings  
 - Access your app at:  
-  `https://YOUR_USERNAME.github.io/graph-paper-plotter/`
+  `https://YOUR_USERNAME.github.io/REPO_NAME/`
 
 ## 📝 License
 
-Copyright © Dwaipayan Datta
+`Copyright © Dwaipayan Datta`
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
