@@ -103,14 +103,10 @@ function getParameters() {
   
   // Validation
   if (xMaxValue <= xMinValue) {
-    alert('X Maximum must be greater than X Minimum');
     xMaxValue = xMinValue + 100;
-    document.getElementById('xMaxValue').value = xMaxValue;
   }
   if (yMaxValue <= yMinValue) {
-    alert('Y Maximum must be greater than Y Minimum');
     yMaxValue = yMinValue + 100;
-    document.getElementById('yMaxValue').value = yMaxValue;
   }
   
   // Calculate divisions
